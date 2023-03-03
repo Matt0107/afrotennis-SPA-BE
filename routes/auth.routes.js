@@ -1,22 +1,23 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
-const passport = require("passport");
 const User = require("../models/User.model.js");
+const jwt = require("jsonwebtoken");
+const { isAuthenticated } = require("../middleware/jwt.js");
 
-// Route pour l'inscription d'un utilisateur
+// Sign up Route
 router.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
     console.log(req.body);
-    // Vérifie si un utilisateur avec le même nom d'utilisateur ou la même adresse e-mail existe déjà
+    // Check if username or email are not already taken
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
       return res
         .status(400)
         .json({ message: "Nom d'utilisateur ou adresse e-mail déjà utilisé." });
     }
-    // Vérifie si le mot de passe respecte les critères de sécurité
+    // Check if password respects requirements
     const passwordRegex =
       /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*()_+])[a-zA-Z\d!@#$%^&*()_+]{7,}$/;
     if (!passwordRegex.test(password)) {
@@ -26,10 +27,10 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    // Hashage du mot de passe avant de l'enregistrer dans la base de données
+    // Password hashing before being saved in database
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Création d'un nouvel utilisateur avec les informations fournies
+    // Creation of new user with given information
     const newUser = new User({ username, email, password: hashedPassword });
     console.log(newUser);
     await newUser.save();
@@ -42,23 +43,46 @@ router.post("/signup", async (req, res) => {
     });
   }
 });
+//Token based Authentication with JWT
+router.get("/verify", isAuthenticated, (req, res, next) => {
+  // if the token is valid we can access it on : req.payload
+  console.log("request payload is: ", req.payload);
+  res.status(200).json(req.payload);
+});
 
-// Route pour la connexion d'un utilisateur
-router.post(
-  "/signin",
-  passport.authenticate("local", { failureRedirect: "/signin" }),
-  (req, res) => {
-    res.status(200).json({ message: "Connexion réussie." });
+router.post("/signin", (req, res, next) => {
+  const { email, password } = req.body;
+  if (email === "" || password === "") {
+    res.status(400).json({ message: "Provide email and password" });
+    return;
   }
-);
-// Définir la route pour la page d'accueil
-router.get(
-  "/home",
-  passport.authenticate("jwt", { session: false }),
-  (req, res) => {
-    res.json({ message: "Welcome to the home page!" });
-  }
-);
+  User.findOne({ email })
+    .then((foundUser) => {
+      if (!foundUser) {
+        res.status(400).json({ message: "User not found" });
+        return;
+      }
+      const passwordCorrect = bcrypt.compareSync(password, foundUser.password);
+      if (passwordCorrect) {
+        const { _id, email, username, games } = foundUser;
+        console.log(`found user: ${foundUser}`);
+        const payload = { _id, email, username, games };
+        // create the json web token
+        console.log(payload);
+        const authToken = jwt.sign(payload, process.env.JWT_SECRET, {
+          algorithm: "HS256",
+          expiresIn: "1h",
+        });
+        res.status(200).json({ authToken });
+      } else {
+        res.status(401).json({ message: "Unable to authenticate" });
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({ message: "Internal Server Error" });
+    });
+});
 
 // Route pour la déconnexion d'un utilisateur
 router.get("/logout", (req, res) => {
@@ -67,80 +91,48 @@ router.get("/logout", (req, res) => {
 });
 
 //Save game played
-router.post(
-  "/games",
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    try {
-      const { form, surface, score, result } = req.body;
-      const newGame = new Game({
-        form,
-        surface,
-        score,
-        result,
-        player: req.user._id,
-      });
-      await newGame.save();
-      res.status(201).json({ message: "Partie enregistrée avec succès." });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        message:
-          "Une erreur est survenue lors de l'enregistrement de la partie.",
-      });
-    }
+router.post("/games", async (req, res) => {
+  try {
+    const { form, surface, score, result } = req.body;
+    const newGame = new Game({
+      form,
+      surface,
+      score,
+      result,
+      player: req.user._id,
+    });
+    await newGame.save();
+    res.status(201).json({ message: "Partie enregistrée avec succès." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Une erreur est survenue lors de l'enregistrement de la partie.",
+    });
   }
-);
+});
 
-// Route pour ajouter une partie à la liste de parties de l'utilisateur connecté
-router.post(
-  "/addgame",
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    try {
-      const { form, surface, score, win } = req.body;
-      const userId = req.user._id;
+// Add games to list of played games of the connected user
+router.post("/addgame", async (req, res) => {
+  try {
+    const { form, surface, score, win } = req.body;
+    const userId = req.user._id;
 
-      // Ajoute la partie à la liste de parties de l'utilisateur
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { $push: { games: { form, surface, score, win } } },
-        { new: true }
-      );
+    // Add game to the list of user's games
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $push: { games: { form, surface, score, win } } },
+      { new: true }
+    );
 
-      res
-        .status(201)
-        .json({ message: "Partie ajoutée avec succès.", user: updatedUser });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        message: "Une erreur est survenue lors de l'ajout de la partie.",
-      });
-    }
+    res
+      .status(201)
+      .json({ message: "Partie ajoutée avec succès.", user: updatedUser });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Une erreur est survenue lors de l'ajout de la partie.",
+    });
   }
-);
+});
 
 module.exports = router;
-
-// router.post("/signup", async (req, res, next) => {
-//     try {
-//       // code for creating a new user profile
-//     } catch (err) {
-//       if (err.name === "ValidationError") {
-//         // handle validation errors
-//         const errors = {};
-//         Object.keys(err.errors).forEach((key) => {
-//           errors[key] = err.errors[key].message;
-//         });
-//         return res.status(400).json({ errors });
-//       } else if (err.name === "MongoError" && err.code === 11000) {
-//         // handle duplicate key error (e.g. email already exists)
-//         return res
-//           .status(400)
-//           .json({ message: "Email address already in use" });
-//       } else {
-//         // handle other errors
-//         return next(err);
-//       }
-//     }
-//   });
