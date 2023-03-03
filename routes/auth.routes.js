@@ -2,13 +2,13 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const passport = require("passport");
-const User = require("../models/user.model");
+const User = require("../models/User.model.js");
 
 // Route pour l'inscription d'un utilisateur
 router.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body;
-
+    console.log(req.body);
     // Vérifie si un utilisateur avec le même nom d'utilisateur ou la même adresse e-mail existe déjà
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
@@ -22,7 +22,7 @@ router.post("/signup", async (req, res) => {
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         message:
-          "Le mot de passe doit contenir au moins une majuscule, un caractère spécial et avoir au moins 7 caractères.",
+          "Password needs minimum one uppercase, one special case and at least seven characters ",
       });
     }
 
@@ -31,6 +31,7 @@ router.post("/signup", async (req, res) => {
 
     // Création d'un nouvel utilisateur avec les informations fournies
     const newUser = new User({ username, email, password: hashedPassword });
+    console.log(newUser);
     await newUser.save();
 
     res.status(201).json({ message: "Compte créé avec succès." });

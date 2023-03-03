@@ -1,10 +1,10 @@
 const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
+const HttpStrategy = require("passport-http").Strategy;
 const bcrypt = require("bcrypt");
-const User = require("../models/user.model");
+const User = require("../models/User.model.js");
 
 passport.use(
-  new LocalStrategy(
+  new HttpStrategy(
     {
       usernameField: "email", // Le champ à utiliser pour l'authentification
       passwordField: "password",
@@ -16,15 +16,15 @@ passport.use(
         // Si l'utilisateur n'existe pas dans la base de données
         if (!user) {
           return done(null, false, {
-            message: "Adresse e-mail ou mot de passe incorrect.",
+            message: "Unknown email address or incorrect password",
           });
         }
 
-        // Vérifie si le mot de passe est correct
+        // Vérifie si le mot de passe est incorrect
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
           return done(null, false, {
-            message: "Adresse e-mail ou mot de passe incorrect.",
+            message: "Unknown email address or incorrect password",
           });
         }
 
