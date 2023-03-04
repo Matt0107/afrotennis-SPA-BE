@@ -8,14 +8,14 @@ const { isAuthenticated } = require("../middleware/jwt.js");
 // Sign up Route
 router.post("/signup", async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { firstName, lastName, username, email, password } = req.body;
     console.log(req.body);
     // Check if username or email are not already taken
     const existingUser = await User.findOne({ $or: [{ username }, { email }] });
     if (existingUser) {
       return res
         .status(400)
-        .json({ message: "Nom d'utilisateur ou adresse e-mail déjà utilisé." });
+        .json({ message: "Username or Email already taken" });
     }
     // Check if password respects requirements
     const passwordRegex =
@@ -31,15 +31,15 @@ router.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Creation of new user with given information
-    const newUser = new User({ username, email, password: hashedPassword });
+    const newUser = new User({ firstName, lastName, username, email, password: hashedPassword });
     console.log(newUser);
     await newUser.save();
 
-    res.status(201).json({ message: "Compte créé avec succès." });
+    res.status(201).json({ message: "Account created." });
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: "Une erreur est survenue lors de la création de votre compte.",
+      message: "Something wrong happened",
     });
   }
 });
@@ -64,9 +64,9 @@ router.post("/signin", (req, res, next) => {
       }
       const passwordCorrect = bcrypt.compareSync(password, foundUser.password);
       if (passwordCorrect) {
-        const { _id, email, username, games } = foundUser;
+        const { _id, firstName, lastName, email, username, games } = foundUser;
         console.log(`found user: ${foundUser}`);
-        const payload = { _id, email, username, games };
+        const payload = { _id, firstName, lastName, email, username, games };
         // create the json web token
         console.log(payload);
         const authToken = jwt.sign(payload, process.env.JWT_SECRET, {
@@ -102,11 +102,11 @@ router.post("/games", async (req, res) => {
       player: req.user._id,
     });
     await newGame.save();
-    res.status(201).json({ message: "Partie enregistrée avec succès." });
+    res.status(201).json({ message: "Game saved." });
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: "Une erreur est survenue lors de l'enregistrement de la partie.",
+      message: "Fault!  Something wrong happened.",
     });
   }
 });
@@ -126,11 +126,11 @@ router.post("/addgame", async (req, res) => {
 
     res
       .status(201)
-      .json({ message: "Partie ajoutée avec succès.", user: updatedUser });
+      .json({ message: "Game added", user: updatedUser });
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: "Une erreur est survenue lors de l'ajout de la partie.",
+      message: "Fault!  Something wrong happened.",
     });
   }
 });

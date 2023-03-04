@@ -3,9 +3,9 @@ const { Schema, model } = require("mongoose");
 const gameSchema = new Schema({
   form: {
     type: String,
-    enum: ["Blessé", "Fatigué", "Bien", "Excellente forme"],
+    enum: ["Injured", "Tired", "I feel good", "Excellent shape"],
   },
-  surface: { type: String, enum: ["Dur", "Gazon", "Terre-battue", "Tapis"] },
+  surface: { type: String, enum: ["Hard Court", "Grass", "Clay", "TCarpet"] },
   score: { type: String, required: true },
   win: { type: Boolean, required: true },
 });
