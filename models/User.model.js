@@ -5,13 +5,23 @@ const gameSchema = new Schema({
     type: String,
     enum: ["Injured", "Tired", "I feel good", "Excellent shape"],
   },
-  surface: { type: String, enum: ["Hard Court", "Grass", "Clay", "TCarpet"] },
+  surface: { type: String, enum: ["Hard Court", "Grass", "Clay", "Carpet"] },
   score: { type: String, required: true },
   win: { type: Boolean, required: true },
 });
 
 const userSchema = new Schema(
   {
+    firstName: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    lastName: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     username: {
       type: String,
       required: true,

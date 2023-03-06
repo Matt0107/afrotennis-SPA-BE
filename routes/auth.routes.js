@@ -84,11 +84,6 @@ router.post("/signin", (req, res, next) => {
     });
 });
 
-// Route pour la déconnexion d'un utilisateur
-router.get("/logout", (req, res) => {
-  req.logout();
-  res.redirect("/");
-});
 
 //Save game played
 router.post("/games", async (req, res) => {
@@ -114,16 +109,16 @@ router.post("/games", async (req, res) => {
 // Add games to list of played games of the connected user
 router.post("/addgame", async (req, res) => {
   try {
-    const { form, surface, score, win } = req.body;
-    const userId = req.user._id;
+  const { form, surface, score, result } = req.body;
+  const userId = req.user._id;
 
     // Add game to the list of user's games
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { $push: { games: { form, surface, score, win } } },
+      { $push: { games: { form, surface, score, win: result } } },
       { new: true }
     );
-
+    
     res
       .status(201)
       .json({ message: "Game added", user: updatedUser });
