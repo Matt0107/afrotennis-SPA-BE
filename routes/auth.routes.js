@@ -31,7 +31,18 @@ router.post("/signup", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Creation of new user with given information
-    const newUser = new User({ firstName, lastName, username, email, password: hashedPassword });
+    const newUser = new User({
+      firstName,
+      lastName,
+      username,
+      dateOfBirth,
+      plays,
+      backhand,
+      city,
+      country,
+      email,
+      password: hashedPassword,
+    });
     console.log(newUser);
     await newUser.save();
 
@@ -84,20 +95,42 @@ router.post("/signin", (req, res, next) => {
     });
 });
 
-
 //Save game played
-router.post("/games", async (req, res) => {
+// router.post("/games", isAuthenticated, async (req, res) => {
+//   try {
+//     const { opponent, form, surface, score, result } = req.body;
+//     const newGame = new Game({
+//       opponent,
+//       form,
+//       surface,
+//       score,
+//       result,
+//       player: req.user._id,
+//     });
+//     await newGame.save();
+//     res.status(201).json({ message: "Game saved." });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({
+//       message: "Fault!  Something wrong happened.",
+//     });
+//   }
+// });
+
+// Add games to list of played games of the connected user
+router.post("/addgame", async (req, res) => {
   try {
-    const { form, surface, score, result } = req.body;
-    const newGame = new Game({
-      form,
-      surface,
-      score,
-      result,
-      player: req.user._id,
-    });
-    await newGame.save();
-    res.status(201).json({ message: "Game saved." });
+    const { opponent, form, surface, score, result, user } = req.body;
+    const userId = user._id;
+
+    // Add game to the list of user's games
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $push: { games: { opponent, form, surface, score, win: result } } },
+      { new: true }
+    );
+
+    res.status(201).json({ message: "Game added", user: updatedUser });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -106,26 +139,59 @@ router.post("/games", async (req, res) => {
   }
 });
 
-// Add games to list of played games of the connected user
-router.post("/addgame", async (req, res) => {
+// route for age of user
+router.get("/users/:id/age", async (req, res) => {
   try {
-  const { form, surface, score, result } = req.body;
-  const userId = req.user._id;
+    const user = await User.findById(req.params.id);
+    const age = user.getAge();
+    res.send({ age });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
 
-    // Add game to the list of user's games
-    const updatedUser = await User.findByIdAndUpdate(
+//route for ID user
+router.get("/users/:id/", isAuthenticated, async (req, res) => {
+  console.log("payload", req.payload);
+  User.findById(req.payload._id)
+
+    .then((allUsers) => res.json(allUsers))
+    .catch((err) => res.json(err));
+});
+
+//route for profile update
+router.put("/users/:id", isAuthenticated, async (req, res) => {
+  try {
+    const { firstName,
+      lastName,
+      username,
+      birthdate,
+      plays,
+      backhand,
+      city,
+      country } = req.body;
+    const userId = req.params.id;
+
+    // Update user
+    const updatedUserId = await User.findByIdAndUpdate(
       userId,
-      { $push: { games: { form, surface, score, win: result } } },
-      { new: true }
+      { 
+        firstName,
+        lastName,
+        username,
+        birthdate,
+        plays,
+        backhand,
+        city,
+        country,
+      }
     );
-    
-    res
-      .status(201)
-      .json({ message: "Game added", user: updatedUser });
+
+    res.status(201).json({ message: "Profile Updated", user: updatedUserId });
   } catch (error) {
     console.error(error);
     res.status(500).json({
-      message: "Fault!  Something wrong happened.",
+      message: "An error occurred while updating the profile.",
     });
   }
 });
