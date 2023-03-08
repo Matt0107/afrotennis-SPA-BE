@@ -94,29 +94,7 @@ router.post("/signin", (req, res, next) => {
       res.status(500).json({ message: "Internal Server Error" });
     });
 });
-
-//Save game played
-// router.post("/games", isAuthenticated, async (req, res) => {
-//   try {
-//     const { opponent, form, surface, score, result } = req.body;
-//     const newGame = new Game({
-//       opponent,
-//       form,
-//       surface,
-//       score,
-//       result,
-//       player: req.user._id,
-//     });
-//     await newGame.save();
-//     res.status(201).json({ message: "Game saved." });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({
-//       message: "Fault!  Something wrong happened.",
-//     });
-//   }
-// });
-
+//*************GAME*************** */
 // Add games to list of played games of the connected user
 router.post("/addgame", async (req, res) => {
   try {
@@ -138,6 +116,38 @@ router.post("/addgame", async (req, res) => {
     });
   }
 });
+
+// route for all games
+router.get("/user/:id/games", async (req, res)=>{
+  try{
+    const userId = req.params.id;
+    const games = await User.findById(userId );
+
+    res.json(games);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
+//Route to delete a game in profile
+
+router.delete("/user/:id/games/:gameId", async (req, res) => {
+  try {
+    const gameId = req.params.gameId
+    console.log(req.body)
+    const userId = req.params.id;
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $pull: { games: { _id: gameId } } }
+    );
+    res.json({ msg: "Game deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+//**************************************** */
 
 // route for age of user
 router.get("/users/:id/age", async (req, res) => {
