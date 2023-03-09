@@ -118,10 +118,10 @@ router.post("/addgame", async (req, res) => {
 });
 
 // route for all games
-router.get("/user/:id/games", async (req, res)=>{
-  try{
+router.get("/user/:id/games", async (req, res) => {
+  try {
     const userId = req.params.id;
-    const games = await User.findById(userId );
+    const games = await User.findById(userId);
 
     res.json(games);
   } catch (error) {
@@ -132,15 +132,14 @@ router.get("/user/:id/games", async (req, res)=>{
 
 //Route to delete a game in profile
 
-router.delete("/user/:id/games/:gameId", async (req, res) => {
+router.delete("/games/:gameId", async (req, res) => {
   try {
-    const gameId = req.params.gameId
-    console.log(req.body)
+    const gameId = req.params.gameId;
+    console.log(req.body);
     const userId = req.params.id;
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $pull: { games: { _id: gameId } } }
-    );
+    const updatedUser = await User.findByIdAndUpdate(userId, {
+      $pull: { games: { _id: gameId } },
+    });
     res.json({ msg: "Game deleted successfully" });
   } catch (error) {
     console.error(error);
@@ -172,30 +171,29 @@ router.get("/users/:id/", isAuthenticated, async (req, res) => {
 //route for profile update
 router.put("/users/:id", isAuthenticated, async (req, res) => {
   try {
-    const { firstName,
+    const {
+      firstName,
       lastName,
       username,
       birthdate,
       plays,
       backhand,
       city,
-      country } = req.body;
+      country,
+    } = req.body;
     const userId = req.params.id;
 
     // Update user
-    const updatedUserId = await User.findByIdAndUpdate(
-      userId,
-      { 
-        firstName,
-        lastName,
-        username,
-        birthdate,
-        plays,
-        backhand,
-        city,
-        country,
-      }
-    );
+    const updatedUserId = await User.findByIdAndUpdate(userId, {
+      firstName,
+      lastName,
+      username,
+      birthdate,
+      plays,
+      backhand,
+      city,
+      country,
+    });
 
     res.status(201).json({ message: "Profile Updated", user: updatedUserId });
   } catch (error) {
