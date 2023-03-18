@@ -132,11 +132,11 @@ router.get("/user/:id/games", async (req, res) => {
 
 //Route to delete a game in profile
 
-router.delete("/games/:gameId", async (req, res) => {
+router.delete("/games/:userId/:gameId", async (req, res) => {
   try {
     const gameId = req.params.gameId;
     console.log(req.body);
-    const userId = req.params.id;
+    const userId = req.params.userId;
     const updatedUser = await User.findByIdAndUpdate(userId, {
       $pull: { games: { _id: gameId } },
     });
