@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const User = require("../models/User.model.js");
 const jwt = require("jsonwebtoken");
 const { isAuthenticated } = require("../middleware/jwt.js");
+const profilePicUpload = require('../config/cloudinary.config');
 
 // Sign up Route
 router.post("/signup", async (req, res) => {
@@ -167,6 +168,11 @@ router.get("/users/:id/", isAuthenticated, async (req, res) => {
     .then((allUsers) => res.json(allUsers))
     .catch((err) => res.json(err));
 });
+
+//route for cloudinary
+router.post('/upload/users/:id'), profilePicUpload.single('imageURL'), (req, res, next) => {
+  
+}
 
 //route for profile update
 router.put("/users/:id", isAuthenticated, async (req, res) => {
